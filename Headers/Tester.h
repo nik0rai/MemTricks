@@ -36,7 +36,8 @@ public:
 	void Allocation(Allocator* al, size_t size, size_t align) {
 		Start();
 		al->init();
-		adresses.push_back(al->alloc(size, align));
+		auto a = al->alloc(size, align);
+		adresses.push_back(a);
 		Stop();
 		Result r = result(std::move(Elapsed), al->top);
 		print(r);
