@@ -1,24 +1,74 @@
 #pragma once
-class Allocator
-{
-private:
-	size_t offset;
+#include "List.h"
+#include <assert.h>
 
-	Allocator(Allocator& allocate);
+
+class Allocator {
 public:
-	void* curr = nullptr; //current address
-	size_t size; //total size
-	size_t used; //is beeing used or not
-	size_t top; //max memory
+	size_t totalSize;
+	size_t chunkSize;
+	size_t chunksPerBlock;
+	size_t used = 0;
+	void* startPtr = nullptr;
 
-	struct HEADER
-	{
-		char padding;
-	};
-	Allocator(size_t _size) : size {_size}, used{0}, top{0}{}
-	~Allocator() { size = 0; }
-	void* alloc(size_t size, size_t align = 0);
-	void Free(void* pointer);
-	void init();
-	void clear();
+
+	struct Chunk {};
+	using Node = List<Chunk>::Node;
+	List<Chunk> list;
+
+	Allocator(size_t chunkSize, size_t chunksPerBlock) {
+		assert(chunkSize >= 8 && "Chunk size must be greater or equal to 8");
+
+		this->chunkSize = chunkSize;
+		this->chunksPerBlock = chunksPerBlock;
+		Init();
+	}
+
+	void* AllocateBlock() {
+
+		size_t blockSize = chunkSize * chunksPerBlock;
+
+		Chunk* blockBegin = reinterpret_cast<Chunk*>(malloc(blockSize));
+
+		for (int i = 0; i < chunksPerBlock; i++) {
+			size_t address = (size_t)blockBegin + i * chunkSize;
+			cout << "Addres [" << i << "] segment: #" << (Node*)address << endl;
+			list.Push((Node*)address);
+		}
+
+		list.ShowSegments(list.head);
+
+		return blockBegin;
+
+	}
+
+	void* Allocate(size_t allocationSize) {
+
+		assert(allocationSize <= this->chunkSize && "Allocation size must be less or equal to chunk size");
+
+		Node* freePosition = list.Pop();
+
+		if (freePosition == NULL) {
+			AllocateBlock();
+			freePosition = list.Pop();
+		}
+
+		used += chunkSize;
+		return (void*)freePosition;
+	}
+
+
+	void Init() {
+		startPtr = malloc(totalSize);
+		used = 0;
+		AllocateBlock();
+	}
+
+
+	void Free(void* ptr) {
+		std::cout << "Free segment: #" << (Node*)ptr << std::endl;
+		used -= chunkSize;
+		list.Push((Node*)ptr);
+	}
+
 };
