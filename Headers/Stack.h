@@ -44,4 +44,15 @@ public:
 		return temp->data;
 	}
 
+	T Top()
+	{
+		if (head == NULL)
+			return NULL;
+		return head->data;
+	}
+
+  	bool isEmpty()
+  	{
+    		return head == NULL;  
+  	}
 };
